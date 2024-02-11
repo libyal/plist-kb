@@ -1,10 +1,9 @@
 PyYAML >= 3.10
 artifacts >= 20220219
 cffi >= 1.9.1
-cryptography >= 2.0.2
 dfdatetime >= 20221112
-dfimagetools >= 20220129
-dfvfs >= 20220831
+dfimagetools >= 20240211
+dfvfs >= 20240115
 dfwinreg >= 20211207
 dtfabric >= 20230518
 libbde-python >= 20220121

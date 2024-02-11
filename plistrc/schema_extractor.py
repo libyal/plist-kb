@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Property List file schema extractor."""
 
+import datetime
 import logging
 import os
 import plistlib
@@ -12,9 +13,14 @@ from artifacts import registry as artifacts_registry
 from dfimagetools import definitions as dfimagetools_definitions
 from dfimagetools import file_entry_lister
 
+from plistrc import decoders
+from plistrc import resources
+
 
 class PropertyListSchemaExtractor(object):
   """Property List file schema extractor."""
+
+  _COMPOSITE_VALUE_TYPES = frozenset(['array', 'dict'])
 
   _MAXIMUM_FILE_SIZE = 64 * 1024 * 1024
 
@@ -38,6 +44,7 @@ class PropertyListSchemaExtractor(object):
     super(PropertyListSchemaExtractor, self).__init__()
     self._artifacts_registry = artifacts_registry.ArtifactDefinitionsRegistry()
     self._mediator = mediator
+    self._nskeyedarchiver_decoder = decoders.NSKeyedArchiverDecoder()
 
     if artifact_definitions:
       reader = artifacts_reader.YamlArtifactsReader()
@@ -114,20 +121,162 @@ class PropertyListSchemaExtractor(object):
 
     return is_xml
 
-  def _GetPropertyListSchemaFromFileObject(self, file_object):
-    """Retrieves schema from given Property List file-like object.
+  def _FormatSchemaAsYAML(self, schema):
+    """Formats a schema into YAML.
 
     Args:
-      file_object (dfvfs.FileIO): file-like object of the Property List.
+      schema (PropertyDefinition): schema.
 
     Returns:
-      dict[str, str]: schema or None if the schema could not be retrieved.
+      str: schema formatted as YAML.
     """
-    # Note that plistlib assumes the file-like object current offset is at the
-    # start of the Property List.
-    file_object.seek(0, os.SEEK_SET)
+    tables = []
 
-    return plistlib.load(file_object)
+    for property_definition in self._GetDictPropertyDefinitions(schema):
+      if not property_definition.schema:
+        continue
+
+      name = property_definition.key_path or '.'
+
+      table = [
+          f'table: {name:s}',
+          'columns:']
+
+      for value_property_definition in sorted(
+          property_definition.schema, key=lambda definition: definition.name):
+        table.append(f'- name: {value_property_definition.name:s}')
+
+        if value_property_definition.value_type != 'array':
+          value_type = value_property_definition.value_type
+        else:
+          array_value_types = ','.join(sorted({
+              definition.value_type
+              for definition in value_property_definition.schema}))
+          value_type = f'array[{array_value_types:s}]'
+
+        table.append(f'  value_type: {value_type:s}')
+
+      if table not in tables:
+        tables.append(table)
+
+    lines = [
+        '# PList-kb Property List schema.',
+        '---']
+
+    for table in sorted(tables):
+      lines.extend(table)
+      lines.append('---')
+
+    return '\n'.join(lines)
+
+  def _GetDictPropertyDefinitions(self, property_definition):
+    """Retrieves the dictionary property definitions.
+
+    Yields:
+      PropertyDefinition: dict property definition.
+    """
+    if property_definition.value_type == 'dict':
+      yield property_definition
+
+    for value_property_definition in property_definition.schema:
+      if value_property_definition.value_type in self._COMPOSITE_VALUE_TYPES:
+        yield from self._GetDictPropertyDefinitions(
+            value_property_definition)
+
+  def _GetPropertyListKeyPath(self, key_path_segments):
+    """Retrieves a Property List key path.
+
+    Args:
+      key_path_segments (list[str]): Property List key path segments.
+
+    Returns:
+      str: Property List key path.
+    """
+    # TODO: escape '.' in path segments
+    return '.'.join(key_path_segments)
+
+  def _GetPropertyListSchemaFromItem(self, item, key_path_segments):
+    """Retrieves schema from given Property List item.
+
+    Args:
+      item (object): Property List item.
+      key_path_segments (list[str]): Property List key path segments.
+
+    Returns:
+      PropertyDefinition: property definition of the item.
+
+    Raises:
+      RuntimeError: if the item is not supported.
+    """
+    property_definition = resources.PropertyDefinition()
+    property_definition.key_path = self._GetPropertyListKeyPath(
+        key_path_segments)
+    property_definition.value_type = self._GetPropertyListValueType(item)
+
+    if isinstance(item, dict):
+      for key, value in item.items():
+        value_type = self._GetPropertyListValueType(item)
+        if value_type not in self._COMPOSITE_VALUE_TYPES:
+          value_property_definition = resources.PropertyDefinition()
+          value_property_definition.name = key
+          value_property_definition.value_type = value_type
+        else:
+          value_key_path_segments = list(key_path_segments)
+          value_key_path_segments.append(key)
+
+          value_property_definition = self._GetPropertyListSchemaFromItem(
+              value, value_key_path_segments)
+          value_property_definition.name = key
+
+        property_definition.schema.append(value_property_definition)
+
+    elif isinstance(item, list):
+      for value in item:
+        value_type = self._GetPropertyListValueType(item)
+        if value_type not in self._COMPOSITE_VALUE_TYPES:
+          value_property_definition = resources.PropertyDefinition()
+          value_property_definition.value_type = value_type
+        else:
+          value_property_definition = self._GetPropertyListSchemaFromItem(
+              value, key_path_segments)
+
+        property_definition.schema.append(value_property_definition)
+
+    return property_definition
+
+  def _GetPropertyListValueType(self, item):
+    """Retrieves Property List value type.
+
+    Args:
+      item (object): Property List item.
+
+    Yields:
+      str: value type.
+
+    Raises:
+      RuntimeError: if the value type is not supported.
+    """
+    if item is None:
+      return 'null'
+    if isinstance(item, bytes):
+      return 'data'
+    if isinstance(item, dict):
+      return 'dict'
+    if isinstance(item, float):
+      return 'real'
+    if isinstance(item, int):
+      return 'int'
+    if isinstance(item, list):
+      return 'array'
+    if isinstance(item, str):
+      return 'string'
+    if isinstance(item, plistlib.UID):
+      return 'UID'
+    if isinstance(item, datetime.datetime):
+      return 'date'
+
+    value_type = type(item)
+    raise RuntimeError(f'Unsupported value type: {value_type!s}')
 
   def GetDisplayPath(self, path_segments, data_stream_name=None):
     """Retrieves a path to display.
@@ -189,32 +338,50 @@ class PropertyListSchemaExtractor(object):
         if not self._CheckSignature(file_object):
           continue
 
+        # Skip Cocoa nib files for now https://developer.apple.com/library/
+        # archive/documentation/Cocoa/Conceptual/LoadingResources/CocoaNibs/
+        # CocoaNibs.html
+        if path_segments[-1].endswith('.nib'):
+          continue
+
         display_path = self.GetDisplayPath(path_segments)
         # logging.info(f'Extracting schema from plist file: {display_path:s}')
 
+        # Note that plistlib assumes the file-like object current offset is at
+        # the start of the Property List.
+        file_object.seek(0, os.SEEK_SET)
+
         try:
-          plist_schema = self._GetPropertyListSchemaFromFileObject(file_object)
+          root_item = plistlib.load(file_object)
         except plistlib.InvalidFileException:
           logging.error(f'Invalid property list file: {display_path:s}')
         except xml.parsers.expat.ExpatError:
           logging.error(f'Corrupt XML property list file: {display_path:s}')
 
+        if self._nskeyedarchiver_decoder.IsEncoded(root_item):
+          try:
+            root_item = self._nskeyedarchiver_decoder.Decode(root_item)
+          except RuntimeError as exception:
+            logging.error((
+                f'Unable to decode property list file: {display_path:s} '
+                f'with error: {exception!s}'))
+
+        plist_schema = self._GetPropertyListSchemaFromItem(root_item, [''])
         if plist_schema is None:
           logging.warning(
               f'Unable to determine schema from plist file: {display_path:s}')
           continue
 
-        # TODO: implement
+        # TODO: implement determine plist identifier.
+        plist_identifier = path_segments[-1]
 
-        yield None, None
-
-  # pylint: disable=redundant-returns-doc
+        yield plist_identifier, plist_schema
 
   def FormatSchema(self, schema, output_format):
-    """Formats a schema into a word-wrapped string.
+    """Formats a schema into the output format.
 
     Args:
-      schema (dict[str, str]): schema.
+      schema (PropertyDefinition): schema.
       output_format (str): output format.
 
     Returns:
@@ -223,4 +390,7 @@ class PropertyListSchemaExtractor(object):
     Raises:
       RuntimeError: if a query could not be parsed.
     """
+    if output_format == 'yaml':
+      return self._FormatSchemaAsYAML(schema)
+
     raise RuntimeError(f'Unsupported output format: {output_format:s}')
