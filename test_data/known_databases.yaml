@@ -1,0 +1,16 @@
+# sqlite-kb database definitions
+---
+artifact_definition: ChromiumBasedBrowsersCookiesDatabaseFile
+database_identifier: chromium_Cookies
+---
+artifact_definition: ChromiumBasedBrowsersFaviconsDatabaseFile
+database_identifier: chromium_Favicons
+---
+artifact_definition: ChromiumBasedBrowsersHistoryDatabaseFile
+database_identifier: chromium_History
+---
+artifact_definition: ChromiumBasedBrowsersLoginDataDatabaseFile
+database_identifier: chromium_Login_Data
+---
+artifact_definition: ChromiumBasedBrowsersWebDataDatabaseFile
+database_identifier: chromium_Web_Data

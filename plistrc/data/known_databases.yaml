@@ -1,0 +1,160 @@
+# sqlite-kb database definitions
+---
+artifact_definition: ChromiumBasedBrowsersCookiesDatabaseFile
+database_identifier: chromium_Cookies
+---
+artifact_definition: ChromiumBasedBrowsersFaviconsDatabaseFile
+database_identifier: chromium_Favicons
+---
+artifact_definition: ChromiumBasedBrowsersHistoryDatabaseFile
+database_identifier: chromium_History
+---
+artifact_definition: ChromiumBasedBrowsersLoginDataDatabaseFile
+database_identifier: chromium_Login_Data
+---
+artifact_definition: ChromiumBasedBrowsersWebDataDatabaseFile
+database_identifier: chromium_Web_Data
+---
+artifact_definition: MacOSAddressBookImagesSQLiteDatabaseFile
+database_identifier: macos_AddressBookImages.sqlitedb
+---
+artifact_definition: MacOSApplePushServiceSQLiteDatabaseFile
+database_identifier: macos_aps.db
+---
+artifact_definition: MacOSApplicationBundleCacheSQLiteDatabaseFile
+database_identifier: application_bundle_Cache.db
+---
+artifact_definition: MacOSAssetCacheInfoSQLiteDatabaseFile
+database_identifier: macos_AssetInfo.db
+---
+artifact_definition: MacOSAuthorizationRulesSQLiteDatabaseFile
+database_identifier: macos_auth.db
+---
+artifact_definition: MacOSCalendarCacheSQLiteDatabaseFile
+database_identifier: macos_Calendar_Cache
+---
+artifact_definition: MacOSCallHistoryCacheSQLiteDatabaseFile
+database_identifier: macos_CallHistory.storedata
+---
+artifact_definition: MacOSDirectoryServicesLocalNodesSQLiteDatabaseFile
+database_identifier: directory_services_nodes.sqlindex
+---
+artifact_definition: MacOSDuetActivitySchedulerSQLiteDatabaseFile
+database_identifier: duet_DuetActivitySchedulerClassC.db
+---
+artifact_definition: MacOSDuetinteractionCSQLiteDatabaseFile
+database_identifier: duet_interactionC.db
+---
+artifact_definition: MacOSDuetKnowledgeCSQLiteDatabaseFile
+database_identifier: duet_knowledgeC.db
+---
+artifact_definition: MacOSDuetSQLiteDatabaseFile
+database_identifier: duet_coreduetd.db
+---
+artifact_definition: MacOSDuetSystemEventsSQLiteDatabaseFile
+database_identifier: duet_coreduetd.db
+---
+artifact_definition: MacOSGatekeeperOpaqueConfigurationSQLiteDatabaseFile
+database_identifier: gatekeeper_gkopaque.db
+---
+artifact_definition: MacOSIdentityServicesSQLiteDatabaseFile
+database_identifier: macos_ids.db
+---
+artifact_definition: MacOSMessageChatSQLiteDatabaseFile
+database_identifier: imessage_chat.db
+---
+artifact_definition: MacOSNetworkUsageSQLiteDatabaseFile
+database_identifier: netusage.sqlite
+---
+artifact_definition: MacOSNotesSQLiteDatabaseFile
+database_identifier: Notes.storedata
+---
+artifact_definition: MacOSQuarantineEventsSQLiteDatabaseFile
+database_identifier: macos_com.apple.LaunchServices.QuarantineEvents
+---
+artifact_definition: MacOSSiriAnalyticsSQLiteDatabaseFile
+database_identifier: siri_SiriAnalytics.db
+---
+artifact_definition: MacOSSiriSuggestionsEntitiesSQLiteDatabaseFile
+database_identifier: siri_suggestions_entities.db
+---
+artifact_definition: MacOSSiriSuggestionsPendingQueueSQLiteDatabaseFile
+database_identifier: siri_suggestions_pending_queue.db
+---
+artifact_definition: MacOSSiriSuggestionsSnippetsSQLiteDatabaseFile
+database_identifier: siri_suggestions_snippets.db
+---
+artifact_definition: MacOSSystemPolicySQLiteDatabaseFile
+database_identifier: macos_SystemPolicy
+---
+artifact_definition: MacOSTCCSQLiteDatabaseFile
+database_identifier: macos_TCC.db
+---
+artifact_definition: MacOSTextReplacementsSQLiteDatabaseFile
+database_identifier: macos_TextReplacements.db
+---
+artifact_definition: MacOSUserAccountsSQLiteDatabaseFile
+database_identifier: macos_Accounts.sqlite
+---
+artifact_definition: MacOSUserDockDesktopPictureSQLiteDatabaseFile
+database_identifier: dock_desktoppicture.db
+---
+artifact_definition: MacOSUserKeychainOCSPCacheSQLiteDatabaseFile
+database_identifier: keychains_ocspcache.sqlite3
+---
+artifact_definition: MacOSUserLocalItemsKeychainKeybagSQLiteDatabaseFile
+database_identifier: keychains_user.db
+---
+artifact_definition: MacOSUserLocalItemsKeychainRecordsSQLiteDatabaseFile
+database_identifier: keychains_keychain-2.db
+---
+artifact_definition: MacOSWalletSQLiteDatabaseFile
+database_identifier: wallet_passes23.sqlite
+---
+artifact_definition: MacOSWirelessDiagnosticDataPersistentSQLiteDatabaseFile
+database_identifier: awdd_persistent.db
+---
+artifact_definition: MacOSXcodeiOSDeviceLogsSQLiteDatabaseFile
+database_identifier: xcode_iOS_Device_Logs.db
+---
+artifact_definition: SafariAutoFillCorrectionsSQLiteDatabaseFile
+database_identifier: safari_AutoFillCorrections.db
+---
+artifact_definition: SafariCacheSQLiteDatabaseFile
+database_identifier: safari_Cache.db
+---
+artifact_definition: SafariCloudAutoFillCorrectionsSQLiteDatabaseFile
+database_identifier: safari_CloudAutoFillCorrections.db
+---
+artifact_definition: SafariFaviconsCacheSQLiteDatabaseFile
+database_identifier: safari_favicons.db
+---
+artifact_definition: SafariHistorySQLiteDatabaseFile
+database_identifier: safari_History.db
+---
+artifact_definition: SafariPerSitePreferencesSQLiteDatabaseFile
+database_identifier: safari_PerSitePreferences.db
+---
+artifact_definition: SafariTabSnapshotsMetadataSQLiteDatabaseFile
+database_identifier: safari_TabSnapshots_Metadata.db
+---
+artifact_definition: SafariTouchIconCacheSettingsSQLiteDatabaseFile
+database_identifier: safari_TouchIconCacheSettings.db
+---
+artifact_definition: WebKitPubSubSQLiteDatabaseFile
+database_identifier: webkit_Database.sqlite3
+---
+artifact_definition: WindowsActivitiesCacheDatabase
+database_identifier: windows_ActivitiesCache.db
+---
+artifact_definition: WindowsPushNotificationDatabaseFile
+database_identifier: windows_wpndatabase.db
+---
+artifact_definition: WindowsStateRepositoryDeploymentDatabaseFile
+database_identifier: windows_StateRepository-Deployment.srd
+---
+artifact_definition: WindowsStateRepositoryMachineDatabaseFile
+database_identifier: windows_StateRepository-Machine.srd
+---
+artifact_definition: WindowsUpdateStoreDatabaseFile
+database_identifier: windows_UpdateStore_store.db
