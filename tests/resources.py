@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Tests for the Property List resources."""
+"""Tests for the property list resources."""
 
 import unittest
 
@@ -14,8 +14,17 @@ class PropertyDefinitionTest(test_lib.BaseTestCase):
 
   def testInitialize(self):
     """Tests the __init__ function."""
-    property_definition = resources.PropertyDefinition()
-    self.assertIsNotNone(property_definition)
+    test_definition = resources.PropertyDefinition()
+    self.assertIsNotNone(test_definition)
+
+
+class PropertyListDefinitionTest(test_lib.BaseTestCase):
+  """Tests for the property list definition."""
+
+  def testInitialize(self):
+    """Tests the __init__ function."""
+    test_definition = resources.PropertyListDefinition()
+    self.assertIsNotNone(test_definition)
 
 
 if __name__ == '__main__':

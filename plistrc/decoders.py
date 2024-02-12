@@ -7,7 +7,11 @@ import uuid
 
 
 class NSKeyedArchiverDecoder(object):
-  """Decodes a NSKeyedArchiver encoded plist."""
+  """Decodes a NSKeyedArchiver encoded plist.
+
+  Also see:
+    https://developer.apple.com/documentation/foundation/nskeyedarchiver
+  """
 
   # TODO: add support for NSAttributedString
   # TODO: add support for NSData

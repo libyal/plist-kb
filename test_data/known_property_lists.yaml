@@ -1,0 +1,4 @@
+# plist-kb property list definitions
+---
+artifact_definition: MacOSAirportPreferencesPlistFile
+property_list_identifier: com.apple.airport.preferences.plist

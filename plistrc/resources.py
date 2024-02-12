@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Property List resources."""
+"""Property list resources."""
 
 
 class PropertyDefinition(object):
@@ -19,3 +19,19 @@ class PropertyDefinition(object):
     self.name = None
     self.schema = []
     self.value_type = None
+
+
+class PropertyListDefinition(object):
+  """Property list definition.
+
+  Attributes:
+    artifact_definition (str): name of the corresponding Digital Forensics
+        Artifact definition.
+    property_list_identifier (str): identifier of the property list.
+  """
+
+  def __init__(self):
+    """Initializes a property list definition."""
+    super(PropertyListDefinition, self).__init__()
+    self.artifact_definition = None
+    self.property_list_identifier = None
