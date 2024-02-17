@@ -13,381 +13,428 @@ class NSKeyedArchiverDecoder(object):
     https://developer.apple.com/documentation/foundation/nskeyedarchiver
   """
 
-  # TODO: add support for NSAttributedString
-  # TODO: add support for NSData
-  # TODO: add support for NSDate
-  # TODO: add support for NSMutableAttributedString
-  # TODO: add support for NSMutableData
-  # TODO: add support for NSMutableString
-  # TODO: add support for NSValue
-  # TODO: add support for SFLListItem
-
   _CALLBACKS = {
-      'BackgroundItemContainer': '_DecodeComposite',
-      'BackgroundItems': '_DecodeComposite',
-      'BackgroundLoginItem': '_DecodeComposite',
-      'Bookmark': '_DecodeComposite',
-      'BTMUserSettings': '_DecodeComposite',
-      'ItemRecord': '_DecodeComposite',
       'NSArray': '_DecodeNSArray',
-      'NSBox': '_DecodeNSBox',
-      'NSButton': '_DecodeNSControl',
-      'NSButtonCell': '_DecodeComposite',
-      'NSButtonImageSource': '_DecodeComposite',
-      'NSColor': '_DecodeComposite',
-      'NSCustomObject': '_DecodeComposite',
-      'NSCustomResource': '_DecodeComposite',
+      'NSData': '_DecodeNSData',
+      'NSDate': '_DecodeNSDate',
       'NSDictionary': '_DecodeNSDictionary',
-      'NSFont': '_DecodeComposite',
       'NSHashTable': '_DecodeNSHashTable',
-      'NSIBObjectData': '_DecodeComposite',
-      'NSImageCell': '_DecodeComposite',
-      'NSImageView': '_DecodeNSControl',
-      'NSMenu': '_DecodeComposite',
-      'NSMutableArray': '_DecodeNSArray',
-      'NSMutableDictionary': '_DecodeNSDictionary',
-      'NSMutableSet': '_DecodeNSSet',
-      'NSNibOutletConnector': '_DecodeNSNibOutletConnector',
-      'NSPopUpButton': '_DecodeNSControl',
-      'NSPopUpButtonCell': '_DecodeComposite',
-      'NSSet': '_DecodeNSSet',
-      'NSTextField': '_DecodeNSControl',
-      'NSTextFieldCell': '_DecodeComposite',
+      'NSNull': '_DecodeNSNull',
+      'NSObject': '_DecodeCompositeObject',
+      'NSSet': '_DecodeNSArray',
       'NSURL': '_DecodeNSURL',
-      'NSUUID': '_DecodeNSUUID',
-      'NSView': '_DecodeNSView',
-      'NSWindowTemplate': '_DecodeComposite',
-      'Storage': '_DecodeComposite'}
+      'NSUUID': '_DecodeNSUUID'}
 
-  def _DecodeComposite(self, encoded_object, objects_array, parent_objects):
+  def _DecodeCompositeObject(
+      self, plist_property, objects_array, parent_objects):
     """Decodes a composite object.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded composite object.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      object: decoded composite object.
+
+    Raises:
+      RuntimeError: if the composite object cannot be decoded.
     """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class'])
+    composite_object = {}
 
-  def _DecodeCompositeWithDebug(
-      self, encoded_object, objects_array, parent_objects):
-    """Decodes a composite object with debugging.
-
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
-
-    Returns:
-      object: decoded object.
-    """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class'], enable_debug=True)
-
-  def _DecodeCompositeWithFilter(
-      self, encoded_object, objects_array, parent_objects, keys_to_ignore=None,
-      enable_debug=False):
-    """Decodes a composite object.
-
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
-      keys_to_ignore (Optional[list[str]]): keys to ignore.
-
-    Returns:
-      object: decoded object.
-    """
-    decoded_dict = {}
-
-    for key in encoded_object:
-      if keys_to_ignore and key in keys_to_ignore:
+    for key in plist_property:
+      if key == '$class':
         continue
 
-      encoded_value = encoded_object.get(key, None)
-      if not encoded_value:
+      value_plist_property = plist_property.get(key, None)
+
+      value_plist_uid = self._GetPlistUID(value_plist_property)
+      if value_plist_uid is None:
+        composite_object[key] = self._DecodeObject(
+            value_plist_property, objects_array, parent_objects)
         continue
 
-      sub_parent_objects = list(parent_objects)
+      if value_plist_uid in parent_objects:
+        continue
 
-      plist_uid = self._GetPlistUID(encoded_value)
-      if plist_uid is not None:
-        if plist_uid in parent_objects:
-          class_name = self._GetClassname(
-              encoded_object, objects_array, parent_objects)
-          message = f'{class_name:s}.{key:s} {plist_uid:d} in parent objects'
-          if not enable_debug:
-            raise RuntimeError(message)
+      parent_objects.append(value_plist_uid)
 
-          print(message)
-          continue
+      composite_object[key] = self._DecodeObject(
+          objects_array[value_plist_uid], objects_array, parent_objects)
 
-        sub_parent_objects.append(plist_uid)
+      parent_objects.pop(-1)
 
-        encoded_value = objects_array[plist_uid]
+    return composite_object
 
-      decoded_value = self._DecodeObject(
-          encoded_value, objects_array, sub_parent_objects)
-
-      decoded_dict[key] = decoded_value
-
-    return decoded_dict
-
-  def _DecodeContainer(self, encoded_object, objects_array, parent_objects):
-    """Decodes a container object.
+  def _DecodeNSArray(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSArray or NSSet.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSArray or NSSet.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
-    """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class', 'container'])
+      list[object]: decoded NSArray or NSSet.
 
-  def _DecodeNSArray(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSArray.
+    Raises:
+      RuntimeError: if the NSArray or NSSet cannot be decoded.
+    """
+    class_name = self._GetClassName(plist_property, objects_array)
+
+    if 'NS.objects' not in plist_property:
+      raise RuntimeError(f'Missing NS.objects in {class_name:s}')
+
+    ns_objects_property = plist_property['NS.objects']
+
+    ns_array = []
+
+    for index, ns_object_property in enumerate(ns_objects_property):
+      ns_object_plist_uid = self._GetPlistUID(ns_object_property)
+      if ns_object_plist_uid is None:
+        raise RuntimeError(
+            f'Missing UID in NS.objects[{index:d}] property of {class_name:s}.')
+
+      if ns_object_plist_uid in parent_objects:
+        continue
+
+      ns_object_referenced_property = objects_array[ns_object_plist_uid]
+
+      parent_objects.append(ns_object_plist_uid)
+
+      ns_array_element = self._DecodeObject(
+          ns_object_referenced_property, objects_array, parent_objects)
+
+      parent_objects.pop(-1)
+
+      ns_array.append(ns_array_element)
+
+    return ns_array
+
+  # pylint: disable=unused-argument
+
+  def _DecodeNSData(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSData.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSData.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      str: decoded NSData.
+
+    Raises:
+      RuntimeError: if the NSData cannot be decoded.
     """
-    if 'NS.objects' not in encoded_object:
-      raise RuntimeError('Missing NS.objects')
+    class_name = self._GetClassName(plist_property, objects_array)
 
-    return [self._DecodeObject(element, objects_array, parent_objects)
-            for element in encoded_object['NS.objects']]
+    if 'NS.data' not in plist_property:
+      raise RuntimeError(f'Missing NS.data in {class_name:s}')
 
-  def _DecodeNSBox(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSBox.
+    ns_data = plist_property['NS.data']
+
+    if not isinstance(ns_data, bytes):
+      type_string = type(ns_data)
+      raise RuntimeError(
+          f'Unsupported type: {type_string!s} in {class_name:s}.NS.data.')
+
+    return str(base64.urlsafe_b64encode(ns_data))[2:-1]
+
+  def _DecodeNSDate(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSDate.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSDate.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      bytes: decoded NSDate.
+
+    Raises:
+      RuntimeError: if the NSDate cannot be decoded.
     """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class', 'NSContentView', 'NSNextResponder', 'NSSubviews',
-            'NSSuperview'])
+    class_name = self._GetClassName(plist_property, objects_array)
 
-  def _DecodeNSControl(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSControl.
+    if 'NS.time' not in plist_property:
+      raise RuntimeError(f'Missing NS.time in {class_name:s}')
 
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
+    ns_time = plist_property['NS.time']
 
-    Returns:
-      object: decoded object.
-    """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class', 'NSCell', 'NSNextResponder', 'NSSuperview'])
+    if not isinstance(ns_time, float):
+      type_string = type(ns_time)
+      raise RuntimeError(
+          f'Unsupported type: {type_string!s} in {class_name:s}.NS.time.')
 
-  def _DecodeNSDictionary(self, encoded_object, objects_array, parent_objects):
+    return ns_time
+
+  # pylint: enable=unused-argument
+
+  def _DecodeNSDictionary(self, plist_property, objects_array, parent_objects):
     """Decodes a NSDictionary.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSDictionary.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      dict[str, object]: decoded NSDictionary.
+
+    Raises:
+      RuntimeError: if the NSDictionary cannot be decoded.
     """
-    if 'NS.keys' not in encoded_object or 'NS.objects' not in encoded_object:
-      raise RuntimeError('Missing NS.keys or NS.objects')
+    class_name = self._GetClassName(plist_property, objects_array)
 
-    ns_keys = encoded_object['NS.keys']
-    ns_objects = encoded_object['NS.objects']
+    if 'NS.keys' not in plist_property or 'NS.objects' not in plist_property:
+      raise RuntimeError(f'Missing NS.keys or NS.objects in {class_name:s}')
 
-    if len(ns_keys) != len(ns_objects):
-      raise RuntimeError('Mismatch between number of NS.keys and NS.objects')
+    ns_keys_property = plist_property['NS.keys']
+    ns_objects_property = plist_property['NS.objects']
 
-    decoded_dict = {}
+    if len(ns_keys_property) != len(ns_objects_property):
+      raise RuntimeError((
+          f'Mismatch between number of NS.keys and NS.objects in '
+          f'{class_name:s}'))
 
-    for index, encoded_key in enumerate(ns_keys):
-      decoded_key = self._DecodeObject(
-          encoded_key, objects_array, parent_objects)
+    ns_dictionary = {}
 
-      encoded_value = ns_objects[index]
-      decoded_value = self._DecodeObject(
-          encoded_value, objects_array, parent_objects)
+    for index, ns_object_property in enumerate(ns_objects_property):
+      ns_key_property = ns_keys_property[index]
 
-      decoded_dict[decoded_key] = decoded_value
+      ns_key_plist_uid = self._GetPlistUID(ns_key_property)
+      if ns_key_plist_uid is None:
+        raise RuntimeError(
+            f'Missing UID in NS.keys[{index:d}] property of {class_name:s}.')
 
-    return decoded_dict
+      ns_key = objects_array[ns_key_plist_uid]
+      if not ns_key:
+        raise RuntimeError((
+            f'Missing {class_name:s}.NS.keys[{index:d}] with UID: '
+            f'{ns_key_plist_uid:d}.'))
 
-  def _DecodeNSHashTable(self, encoded_object, objects_array, parent_objects):
+      if not isinstance(ns_key, str):
+        type_string = type(ns_key)
+        raise RuntimeError((
+            f'Unsupported type: {type_string!s} in {class_name:s}.NS.keys'
+            f'[{index:d}] with UID: {ns_key_plist_uid:d}.'))
+
+      ns_object_plist_uid = self._GetPlistUID(ns_object_property)
+      if ns_object_plist_uid is None:
+        raise RuntimeError((
+            f'Missing UID in NS.objects[{index:d}] property of {class_name:s}'
+            f'.{ns_key:s}.'))
+
+      if ns_object_plist_uid in parent_objects:
+        continue
+
+      ns_object_referenced_property = objects_array[ns_object_plist_uid]
+
+      parent_objects.append(ns_object_plist_uid)
+
+      ns_dictionary[ns_key] = self._DecodeObject(
+          ns_object_referenced_property, objects_array, parent_objects)
+
+      parent_objects.pop(-1)
+
+    return ns_dictionary
+
+  def _DecodeNSHashTable(self, plist_property, objects_array, parent_objects):
     """Decodes a NSHashTable.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSHashTable.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      object: decoded NSHashTable.
+
+    Raises:
+      RuntimeError: if the NSHashTable cannot be decoded.
     """
-    if '$1' not in encoded_object:
-      raise RuntimeError('Missing $1')
+    class_name = self._GetClassName(plist_property, objects_array)
 
-    value_object = encoded_object['$1']
+    if '$1' not in plist_property:
+      raise RuntimeError(f'Missing $1 in {class_name:s}')
 
-    plist_uid = self._GetPlistUID(value_object)
-    if plist_uid is None:
-      encoded_object_type = type(value_object)
+    value_property = plist_property['$1']
+
+    value_plist_uid = self._GetPlistUID(value_property)
+    if value_plist_uid is None:
+      type_string = type(value_property)
+      raise RuntimeError(f'Unsupported {class_name:s}.$1 type: {type_string!s}')
+
+    if value_plist_uid in parent_objects:
+      raise RuntimeError((
+          f'{class_name:s}.$1 wth UID: {value_plist_uid:d} in parent objects'))
+
+    referenced_property = objects_array[value_plist_uid]
+    if not referenced_property:
       raise RuntimeError(
-          f'Unsupported encoded object $1 type: {encoded_object_type!s}')
-
-    if plist_uid in parent_objects:
-      raise RuntimeError(f'$object {plist_uid:d} in parent objects')
-
-    parent_objects = list(parent_objects)
-    parent_objects.append(plist_uid)
-
-    referenced_object = objects_array[plist_uid]
+          f'Missing {class_name:s}.$1 with UID: {value_plist_uid:d}.')
 
     # TODO: what about value $0? It seems to indicate the number of elements
     # in the hash table.
     # TODO: what about value $2?
 
-    return self._DecodeContainer(
-        referenced_object, objects_array, parent_objects)
+    parent_objects.append(value_plist_uid)
 
-  def _DecodeNSNibOutletConnector(
-      self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSNibOutletConnector.
+    ns_hash_table = self._DecodeCompositeObject(
+        referenced_property, objects_array, parent_objects)
 
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
+    parent_objects.pop(-1)
 
-    Returns:
-      object: decoded object.
-    """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class', 'NSSource'])
-
-  def _DecodeNSSet(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSSet.
-
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
-
-    Returns:
-      object: decoded object.
-    """
-    if 'NS.objects' not in encoded_object:
-      raise RuntimeError('Missing NS.objects')
-
-    decoded_list = []
-
-    for index, value_object in enumerate(encoded_object['NS.objects']):
-      plist_uid = self._GetPlistUID(value_object)
-      if plist_uid in parent_objects:
-        raise RuntimeError(
-            f'NS.objects[{index:d}] {plist_uid:d} in parent objects')
-
-      sub_parent_objects = list(parent_objects)
-      sub_parent_objects.append(plist_uid)
-
-      referenced_object = objects_array[plist_uid]
-
-      decoded_element = self._DecodeObject(
-          referenced_object, objects_array, sub_parent_objects)
-
-      decoded_list.append(decoded_element)
-
-    return decoded_list
-
-  def _DecodeNSURL(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSURL.
-
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
-
-    Returns:
-      object: decoded object.
-    """
-    if 'NS.base' not in encoded_object or 'NS.relative' not in encoded_object:
-      raise RuntimeError('Missing NS.base or NS.relative')
-
-    decoded_base = self._DecodeObject(
-        encoded_object['NS.base'], objects_array, parent_objects)
-
-    decoded_relative = self._DecodeObject(
-        encoded_object['NS.relative'], objects_array, parent_objects)
-
-    if decoded_base:
-      decoded_url = '/'.join([decoded_base, decoded_relative])
-    else:
-      decoded_url = decoded_relative
-
-    return decoded_url
+    return ns_hash_table
 
   # pylint: disable=unused-argument
 
-  def _DecodeNSUUID(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSUUID.
+  def _DecodeNSNull(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSNull.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSNull.
+      objects_array (list[object]): $objects array.
+      parent_objects (list[int]): parent object UIDs.
+
+    Returns:
+      None: decoded NSNull.
+    """
+    return None
+
+  # pylint: enable=unused-argument
+
+  def _DecodeNSObject(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSObject.
+
+    Args:
+      plist_property (object): property containing the encoded NSObject.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
       object: decoded object.
+
+    Raises:
+      RuntimeError: if the NSObject cannot be decoded.
     """
-    if 'NS.uuidbytes' not in encoded_object:
+    class_property = plist_property.get('$class', None)
+    if not class_property:
+      raise RuntimeError('$class property missing in NSObject.')
+
+    class_plist_uid = self._GetPlistUID(class_property)
+    if class_plist_uid is None:
+      raise RuntimeError('Missing UID in $class property of NSObject.')
+
+    referenced_property = objects_array[class_plist_uid]
+    if not referenced_property:
+      raise RuntimeError(
+          f'Missing NSObject.$class with UID: {class_plist_uid:d}.')
+
+    class_name = referenced_property.get('$classname', None)
+    if not class_name:
+      raise RuntimeError((
+          f'$classname property missing in NSObject.$class with UID: '
+          f'{class_plist_uid:d}.'))
+
+    classes = referenced_property.get('$classes', None)
+    if not classes:
+      raise RuntimeError((
+          f'$classes property missing in NSObject.$class with UID: '
+          f'{class_plist_uid:d}.'))
+
+    for name in classes:
+      callback_method = self._CALLBACKS.get(name, None)
+      if callback_method:
+        break
+
+    if not callback_method:
+      raise RuntimeError(f'Missing callback for class: {class_name:s}')
+
+    callback = getattr(self, callback_method, None)
+    return callback(plist_property, objects_array, parent_objects)
+
+  # pylint: disable=unused-argument
+
+  def _DecodeNSURL(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSURL.
+
+    Args:
+      plist_property (object): property containing the encoded NSURL.
+      objects_array (list[object]): $objects array.
+      parent_objects (list[int]): parent object UIDs.
+
+    Returns:
+      object: decoded object.
+
+    Raises:
+      RuntimeError: if the NSURL cannot be decoded.
+    """
+    if 'NS.base' not in plist_property or 'NS.relative' not in plist_property:
+      raise RuntimeError('Missing NS.base or NS.relative in NSURL')
+
+    ns_base_plist_uid = self._GetPlistUID(plist_property['NS.base'])
+    if ns_base_plist_uid is None:
+      raise RuntimeError('Missing UID in NS.base property of NSURL.')
+
+    ns_base = objects_array[ns_base_plist_uid]
+    if not ns_base:
+      raise RuntimeError(
+          f'Missing NSURL.NS.base with UID: {ns_base_plist_uid:d}.')
+
+    if not isinstance(ns_base, str):
+      type_string = type(ns_base)
+      raise RuntimeError((
+          f'Unsupported type: {type_string!s} in NSURL.NS.base with UID: '
+          f'{ns_base_plist_uid:d}.'))
+
+    ns_relative_plist_uid = self._GetPlistUID(plist_property['NS.relative'])
+    if ns_relative_plist_uid is None:
+      raise RuntimeError('Missing UID in NS.relative property of NSURL.')
+
+    ns_relative = objects_array[ns_relative_plist_uid]
+    if not ns_relative:
+      raise RuntimeError(
+          f'Missing NSURL.NS.relative with UID: {ns_relative_plist_uid:d}.')
+
+    if not isinstance(ns_relative, str):
+      type_string = type(ns_relative)
+      raise RuntimeError((
+          f'Unsupported type: {type_string!s} in NSURL.NS.relative with UID: '
+          f'{ns_relative_plist_uid:d}.'))
+
+    if ns_base == '$null':
+      ns_url = ns_relative
+    else:
+      ns_url = '/'.join([ns_base, ns_relative])
+
+    return ns_url
+
+  def _DecodeNSUUID(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSUUID.
+
+    Args:
+      plist_property (object): property containing the encoded NSUUID.
+      objects_array (list[object]): $objects array.
+      parent_objects (list[int]): parent object UIDs.
+
+    Returns:
+      object: decoded object.
+
+    Raises:
+      RuntimeError: if the NSUUID cannot be decoded.
+    """
+    if 'NS.uuidbytes' not in plist_property:
       raise RuntimeError('Missing NS.uuidbytes')
 
-    ns_uuidbytes = encoded_object['NS.uuidbytes']
+    ns_uuidbytes = plist_property['NS.uuidbytes']
     if len(ns_uuidbytes) != 16:
       raise RuntimeError('Unsupported NS.uuidbytes size')
 
     return str(uuid.UUID(bytes=ns_uuidbytes))
 
   # pylint: enable=unused-argument
-
-  def _DecodeNSView(self, encoded_object, objects_array, parent_objects):
-    """Decodes a NSView.
-
-    Args:
-      encoded_object (object): encoded object.
-      objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
-
-    Returns:
-      object: decoded object.
-    """
-    return self._DecodeCompositeWithFilter(
-        encoded_object, objects_array, parent_objects, keys_to_ignore=[
-            '$class', 'NSNextResponder', 'NSSubviews', 'NSSuperview'])
 
   def _DecodeObject(self, encoded_object, objects_array, parent_objects):
     """Decodes an object.
@@ -399,16 +446,10 @@ class NSKeyedArchiverDecoder(object):
 
     Returns:
       object: decoded object.
+
+    Raises:
+      RuntimeError: if the object cannot be decoded.
     """
-    # Due to how plist UID are stored in a XML plist we need to test for it
-    # before testing for a dict.
-
-    plist_uid = self._GetPlistUID(encoded_object)
-    if plist_uid is not None:
-      referenced_object = objects_array[plist_uid]
-      return self._DecodeObject(
-          referenced_object, objects_array, parent_objects)
-
     if (encoded_object is None or
         isinstance(encoded_object, (bool, int, float))):
       return encoded_object
@@ -416,67 +457,68 @@ class NSKeyedArchiverDecoder(object):
     if isinstance(encoded_object, bytes):
       return str(base64.urlsafe_b64encode(encoded_object))[2:-1]
 
+    if isinstance(encoded_object, dict) and '$class' not in encoded_object:
+      return encoded_object
+
+    if isinstance(encoded_object, list):
+      return encoded_object
+
     if isinstance(encoded_object, str):
       if encoded_object == '$null':
         return None
 
       return encoded_object
 
-    if isinstance(encoded_object, dict):
-      class_name = self._GetClassname(
-          encoded_object, objects_array, parent_objects)
-      if not class_name:
-        return encoded_object
+    return self._DecodeNSObject(encoded_object, objects_array, parent_objects)
 
-      callback_method = self._CALLBACKS.get(class_name, None)
-      if not callback_method:
-        raise RuntimeError(f'Missing callback for class: {class_name:s}')
-
-      callback = getattr(self, callback_method, None)
-      return callback(encoded_object, objects_array, parent_objects)
-
-    if isinstance(encoded_object, list):
-      return [self._DecodeObject(element, objects_array, parent_objects)
-              for element in encoded_object]
-
-    encoded_object_type = type(encoded_object)
-    raise RuntimeError(
-        f'Unsupported encoded object type: {encoded_object_type!s}')
-
-  def _GetClassname(self, encoded_object, objects_array, parent_objects):
+  def _GetClassName(self, plist_property, objects_array):
     """Retrieves a class name.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the $class property.
       objects_array (list[object]): $objects array.
-      parent_objects (list[int]): parent object UIDs.
 
     Returns:
       str: class name or None if not available.
+
+    Raises:
+      RuntimeError: if the class name cannot be retrieved.
     """
-    encoded_class = encoded_object.get('$class', None)
-    if not encoded_class:
-      return None
+    class_property = plist_property.get('$class', None)
+    if not class_property:
+      raise RuntimeError('Missing $class property.')
 
-    decoded_class = self._DecodeObject(
-        encoded_class, objects_array, parent_objects)
-    return decoded_class.get('$classname', None)
+    class_plist_uid = self._GetPlistUID(class_property)
+    if class_plist_uid is None:
+      raise RuntimeError('Missing UID in $class property.')
 
-  def _GetPlistUID(self, encoded_object):
+    referenced_property = objects_array[class_plist_uid]
+    if not referenced_property:
+      raise RuntimeError(f'Missing class with UID: {class_plist_uid:d}.')
+
+    class_name = referenced_property.get('$classname', None)
+    if not class_name:
+      raise RuntimeError((
+          f'$classname property missing in class with UID: '
+          f'{class_plist_uid:d}.'))
+
+    return class_name
+
+  def _GetPlistUID(self, plist_property):
     """Retrieves a plist UID.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the plist UID.
 
     Returns:
       int: plist UID or None if not available.
     """
-    if isinstance(encoded_object, plistlib.UID):
-      return encoded_object.data
+    if isinstance(plist_property, plistlib.UID):
+      return plist_property.data
 
-    if (isinstance(encoded_object, dict) and 'CF$UID' in encoded_object and
-        len(encoded_object) == 1):
-      return encoded_object['CF$UID']
+    if (isinstance(plist_property, dict) and 'CF$UID' in plist_property and
+        len(plist_property) == 1):
+      return plist_property['CF$UID']
 
     return None
 
@@ -490,28 +532,38 @@ class NSKeyedArchiverDecoder(object):
       dict[str, object]: root object of the decoded plist.
 
     Raises:
-      RuntimeError: if encoding is not supported.
+      RuntimeError: if the plist cannot be decoded.
     """
+    if not isinstance(root_item, dict):
+      type_string = type(root_item)
+      raise RuntimeError(
+          f'Unsupported plist: unsupported root item type: {type_string!s}.')
+
     archiver = root_item.get('$archiver')
     version = root_item.get('$version')
     if archiver != 'NSKeyedArchiver' or version != 100000:
       raise RuntimeError(f'Unsupported plist: {archiver!s} {version!s}')
 
-    decoded_plist = {}
+    decoded_object = {}
 
     objects_array = root_item.get('$objects') or []
 
-    top_items = root_item.get('$top') or {}
-    for name, value in top_items.items():
-      plist_uid = self._GetPlistUID(value)
-      if plist_uid is not None:
-        encoded_object = objects_array[plist_uid]
+    top_property = root_item.get('$top') or {}
+    for name, value_property in top_property.items():
+      value_plist_uid = self._GetPlistUID(value_property)
+      if value_plist_uid is None:
+        decoded_object[name] = value_property
+        continue
 
-        value = self._DecodeObject(encoded_object, objects_array, [plist_uid])
+      value_referenced_property = objects_array[value_plist_uid]
+      if not value_referenced_property:
+        raise RuntimeError(
+            f'Missing $top["{name:s}"] with UID: {value_plist_uid:d}.')
 
-      decoded_plist[name] = value
+      decoded_object[name] = self._DecodeNSObject(
+          value_referenced_property, objects_array, [value_plist_uid])
 
-    return decoded_plist
+    return decoded_object
 
   def IsEncoded(self, root_item):
     """Determines if a plist is NSKeyedArchiver encoded.

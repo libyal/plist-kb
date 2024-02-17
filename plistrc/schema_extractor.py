@@ -341,8 +341,8 @@ class PropertyListSchemaExtractor(object):
         # Skip Cocoa nib files for now https://developer.apple.com/library/
         # archive/documentation/Cocoa/Conceptual/LoadingResources/CocoaNibs/
         # CocoaNibs.html
-        if path_segments[-1].endswith('.nib'):
-          continue
+        # if path_segments[-1].endswith('.nib'):
+        #   continue
 
         display_path = self.GetDisplayPath(path_segments)
         # logging.info(f'Extracting schema from plist file: {display_path:s}')

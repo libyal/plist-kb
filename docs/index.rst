@@ -7,3 +7,16 @@ plistrc is a Python module part of plist-kb to allow reuse of Property List
 Resources.
 
 The source code is available from the `project page <https://github.com/libyal/plist-kb>`__.
+
+.. toctree::
+   :maxdepth: 2
+
+   API documentation <sources/api/plistrc>
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+

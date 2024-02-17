@@ -37,7 +37,11 @@ def Main():
   with open(options.source, 'rb') as file_object:
     encoded_plist = plistlib.load(file_object)
 
-  decoded_plist = decoder.Decode(encoded_plist)
+  try:
+    decoded_plist = decoder.Decode(encoded_plist)
+  except RuntimeError as exception:
+    print(f'[WARNING] {exception!s}')
+    return False
 
   print(json.dumps(decoded_plist))
 
