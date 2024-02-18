@@ -4,6 +4,8 @@
 import plistlib
 import uuid
 
+from dfdatetime import cocoa_time as dfdatetime_cocoa_time
+
 
 class NSKeyedArchiverDecoder(object):
   """Decoder for NSKeyedArchiver encoded plists.
@@ -81,7 +83,6 @@ class NSKeyedArchiverDecoder(object):
       RuntimeError: if the NSArray or NSSet cannot be decoded.
     """
     class_name = self._GetClassName(plist_property, objects_array)
-
     if 'NS.objects' not in plist_property:
       raise RuntimeError(f'Missing NS.objects in {class_name:s}')
 
@@ -128,7 +129,6 @@ class NSKeyedArchiverDecoder(object):
       RuntimeError: if the NSData cannot be decoded.
     """
     class_name = self._GetClassName(plist_property, objects_array)
-
     if 'NS.data' not in plist_property:
       raise RuntimeError(f'Missing NS.data in {class_name:s}')
 
@@ -150,13 +150,12 @@ class NSKeyedArchiverDecoder(object):
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      bytes: decoded NSDate.
+      dfdatetime.CocoaTime: decoded NSDate.
 
     Raises:
       RuntimeError: if the NSDate cannot be decoded.
     """
     class_name = self._GetClassName(plist_property, objects_array)
-
     if 'NS.time' not in plist_property:
       raise RuntimeError(f'Missing NS.time in {class_name:s}')
 
@@ -167,7 +166,7 @@ class NSKeyedArchiverDecoder(object):
       raise RuntimeError(
           f'Unsupported type: {type_string!s} in {class_name:s}.NS.time.')
 
-    return ns_time
+    return dfdatetime_cocoa_time.CocoaTime(timestamp=ns_time)
 
   # pylint: enable=unused-argument
 
@@ -186,7 +185,6 @@ class NSKeyedArchiverDecoder(object):
       RuntimeError: if the NSDictionary cannot be decoded.
     """
     class_name = self._GetClassName(plist_property, objects_array)
-
     if 'NS.keys' not in plist_property or 'NS.objects' not in plist_property:
       raise RuntimeError(f'Missing NS.keys or NS.objects in {class_name:s}')
 
@@ -263,7 +261,6 @@ class NSKeyedArchiverDecoder(object):
       RuntimeError: if the NSHashTable cannot be decoded.
     """
     class_name = self._GetClassName(plist_property, objects_array)
-
     if '$1' not in plist_property:
       raise RuntimeError(f'Missing $1 in {class_name:s}')
 
@@ -322,7 +319,7 @@ class NSKeyedArchiverDecoder(object):
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      object: decoded NSObject.
 
     Raises:
       RuntimeError: if the NSObject cannot be decoded.
@@ -380,7 +377,6 @@ class NSKeyedArchiverDecoder(object):
       RuntimeError: if the NSString cannot be decoded.
     """
     class_name = self._GetClassName(plist_property, objects_array)
-
     if 'NS.string' not in plist_property:
       raise RuntimeError(f'Missing NS.string in {class_name:s}')
 
@@ -402,7 +398,7 @@ class NSKeyedArchiverDecoder(object):
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      str: decoded NSURL.
 
     Raises:
       RuntimeError: if the NSURL cannot be decoded.
@@ -456,7 +452,7 @@ class NSKeyedArchiverDecoder(object):
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      object: decoded object.
+      str: decoded NSUUID.
 
     Raises:
       RuntimeError: if the NSUUID cannot be decoded.
@@ -585,6 +581,11 @@ class NSKeyedArchiverDecoder(object):
 
       decoded_object[name] = self._DecodeNSObject(
           value_referenced_property, objects_array, [value_plist_uid])
+
+    # The root $top appears to be internal only to the NSKeyedArchiver encoded
+    # plist.
+    if len(decoded_object) == 1:
+      decoded_object = decoded_object.get('root', decoded_object)
 
     return decoded_object
 

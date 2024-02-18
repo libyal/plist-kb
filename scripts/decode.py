@@ -8,6 +8,8 @@ import json
 import plistlib
 import sys
 
+from dfdatetime import cocoa_time as dfdatetime_cocoa_time
+
 from plistrc import decoders
 
 
@@ -26,6 +28,9 @@ class NSKeyedArchiverJSONEncoder(json.JSONEncoder):
     if isinstance(o, bytes):
       encoded_bytes = base64.urlsafe_b64encode(o)
       return encoded_bytes.decode('latin1')
+
+    if isinstance(o, dfdatetime_cocoa_time.CocoaTime):
+      return o.timestamp
 
     return super(NSKeyedArchiverJSONEncoder, self).default(o)
 
