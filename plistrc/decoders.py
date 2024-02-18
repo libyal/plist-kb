@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Property List decoders."""
+"""Property list decoders."""
 
-import base64
 import plistlib
 import uuid
 
 
 class NSKeyedArchiverDecoder(object):
-  """Decodes a NSKeyedArchiver encoded plist.
+  """Decoder for NSKeyedArchiver encoded plists.
 
   Also see:
     https://developer.apple.com/documentation/foundation/nskeyedarchiver
@@ -22,6 +21,7 @@ class NSKeyedArchiverDecoder(object):
       'NSNull': '_DecodeNSNull',
       'NSObject': '_DecodeCompositeObject',
       'NSSet': '_DecodeNSArray',
+      'NSString': '_DecodeNSString',
       'NSURL': '_DecodeNSURL',
       'NSUUID': '_DecodeNSUUID'}
 
@@ -122,7 +122,7 @@ class NSKeyedArchiverDecoder(object):
       parent_objects (list[int]): parent object UIDs.
 
     Returns:
-      str: decoded NSData.
+      bytes: decoded NSData.
 
     Raises:
       RuntimeError: if the NSData cannot be decoded.
@@ -139,7 +139,7 @@ class NSKeyedArchiverDecoder(object):
       raise RuntimeError(
           f'Unsupported type: {type_string!s} in {class_name:s}.NS.data.')
 
-    return str(base64.urlsafe_b64encode(ns_data))[2:-1]
+    return ns_data
 
   def _DecodeNSDate(self, plist_property, objects_array, parent_objects):
     """Decodes a NSDate.
@@ -208,7 +208,15 @@ class NSKeyedArchiverDecoder(object):
         raise RuntimeError(
             f'Missing UID in NS.keys[{index:d}] property of {class_name:s}.')
 
-      ns_key = objects_array[ns_key_plist_uid]
+      ns_key_referenced_property = objects_array[ns_key_plist_uid]
+
+      parent_objects.append(ns_key_plist_uid)
+
+      ns_key = self._DecodeObject(
+          ns_key_referenced_property, objects_array, parent_objects)
+
+      parent_objects.pop(-1)
+
       if not ns_key:
         raise RuntimeError((
             f'Missing {class_name:s}.NS.keys[{index:d}] with UID: '
@@ -357,6 +365,34 @@ class NSKeyedArchiverDecoder(object):
 
   # pylint: disable=unused-argument
 
+  def _DecodeNSString(self, plist_property, objects_array, parent_objects):
+    """Decodes a NSString.
+
+    Args:
+      plist_property (object): property containing the encoded NSString.
+      objects_array (list[object]): $objects array.
+      parent_objects (list[int]): parent object UIDs.
+
+    Returns:
+      str: decoded NSString.
+
+    Raises:
+      RuntimeError: if the NSString cannot be decoded.
+    """
+    class_name = self._GetClassName(plist_property, objects_array)
+
+    if 'NS.string' not in plist_property:
+      raise RuntimeError(f'Missing NS.string in {class_name:s}')
+
+    ns_string = plist_property['NS.string']
+
+    if not isinstance(ns_string, str):
+      type_string = type(ns_string)
+      raise RuntimeError(
+          f'Unsupported type: {type_string!s} in {class_name:s}.NS.string.')
+
+    return ns_string
+
   def _DecodeNSURL(self, plist_property, objects_array, parent_objects):
     """Decodes a NSURL.
 
@@ -436,11 +472,11 @@ class NSKeyedArchiverDecoder(object):
 
   # pylint: enable=unused-argument
 
-  def _DecodeObject(self, encoded_object, objects_array, parent_objects):
+  def _DecodeObject(self, plist_property, objects_array, parent_objects):
     """Decodes an object.
 
     Args:
-      encoded_object (object): encoded object.
+      plist_property (object): property containing the encoded NSUUID.
       objects_array (list[object]): $objects array.
       parent_objects (list[int]): parent object UIDs.
 
@@ -450,26 +486,13 @@ class NSKeyedArchiverDecoder(object):
     Raises:
       RuntimeError: if the object cannot be decoded.
     """
-    if (encoded_object is None or
-        isinstance(encoded_object, (bool, int, float))):
-      return encoded_object
+    if isinstance(plist_property, dict) and '$class' in plist_property:
+      return self._DecodeNSObject(plist_property, objects_array, parent_objects)
 
-    if isinstance(encoded_object, bytes):
-      return str(base64.urlsafe_b64encode(encoded_object))[2:-1]
+    if isinstance(plist_property, str) and plist_property == '$null':
+      return None
 
-    if isinstance(encoded_object, dict) and '$class' not in encoded_object:
-      return encoded_object
-
-    if isinstance(encoded_object, list):
-      return encoded_object
-
-    if isinstance(encoded_object, str):
-      if encoded_object == '$null':
-        return None
-
-      return encoded_object
-
-    return self._DecodeNSObject(encoded_object, objects_array, parent_objects)
+    return plist_property
 
   def _GetClassName(self, plist_property, objects_array):
     """Retrieves a class name.

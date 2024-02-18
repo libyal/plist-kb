@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Property List file schema extractor."""
+"""Property list file schema extractor."""
 
 import datetime
 import logging
@@ -18,7 +18,7 @@ from plistrc import resources
 
 
 class PropertyListSchemaExtractor(object):
-  """Property List file schema extractor."""
+  """Property list file schema extractor."""
 
   _COMPOSITE_VALUE_TYPES = frozenset(['array', 'dict'])
 
@@ -33,7 +33,7 @@ class PropertyListSchemaExtractor(object):
   _UTF32LE_BYTE_ORDER_MARK = b'\xff\xfe\x00\x00'
 
   def __init__(self, artifact_definitions, mediator=None):
-    """Initializes a Property List file schema extractor.
+    """Initializes a property list file schema extractor.
 
     Args:
       artifact_definitions (str): path to a single artifact definitions
@@ -54,7 +54,7 @@ class PropertyListSchemaExtractor(object):
         self._artifacts_registry.ReadFromFile(reader, artifact_definitions)
 
   def _CheckByteOrderMark(self, data):
-    """Determines if a Property List starts with a byte-order-mark.
+    """Determines if a property list starts with a byte-order-mark.
 
     Args:
       data (bytes): data.
@@ -84,10 +84,10 @@ class PropertyListSchemaExtractor(object):
     """Checks the signature of a given file-like object.
 
     Args:
-      file_object (dfvfs.FileIO): file-like object of the Property List.
+      file_object (dfvfs.FileIO): file-like object of the property list.
 
     Returns:
-      bool: True if the signature matches that of a Property List, False
+      bool: True if the signature matches that of a property list, False
           otherwise.
     """
     if not file_object:
@@ -160,7 +160,7 @@ class PropertyListSchemaExtractor(object):
         tables.append(table)
 
     lines = [
-        '# PList-kb Property List schema.',
+        '# PList-kb property list schema.',
         '---']
 
     for table in sorted(tables):
@@ -184,23 +184,23 @@ class PropertyListSchemaExtractor(object):
             value_property_definition)
 
   def _GetPropertyListKeyPath(self, key_path_segments):
-    """Retrieves a Property List key path.
+    """Retrieves a property list key path.
 
     Args:
-      key_path_segments (list[str]): Property List key path segments.
+      key_path_segments (list[str]): property list key path segments.
 
     Returns:
-      str: Property List key path.
+      str: property list key path.
     """
     # TODO: escape '.' in path segments
     return '.'.join(key_path_segments)
 
   def _GetPropertyListSchemaFromItem(self, item, key_path_segments):
-    """Retrieves schema from given Property List item.
+    """Retrieves schema from given property list item.
 
     Args:
-      item (object): Property List item.
-      key_path_segments (list[str]): Property List key path segments.
+      item (object): property list item.
+      key_path_segments (list[str]): property list key path segments.
 
     Returns:
       PropertyDefinition: property definition of the item.
@@ -245,10 +245,10 @@ class PropertyListSchemaExtractor(object):
     return property_definition
 
   def _GetPropertyListValueType(self, item):
-    """Retrieves Property List value type.
+    """Retrieves property list value type.
 
     Args:
-      item (object): Property List item.
+      item (object): property list item.
 
     Yields:
       str: value type.
@@ -305,18 +305,18 @@ class PropertyListSchemaExtractor(object):
     return display_path or '/'
 
   def ExtractSchemas(self, path, options=None):
-    """Extracts Property List schemas from the path.
+    """Extracts property list schemas from the path.
 
     Args:
-      path (str): path of a Property List file or storage media image containing
-          Property List files.
+      path (str): path of a property list file or storage media image containing
+          property list files.
       options (Optional[dfvfs.VolumeScannerOptions]): volume scanner options. If
           None the default volume scanner options are used, which are defined in
           the dfVFS VolumeScannerOptions class.
 
     Yields:
-      tuple[str, dict[str, str]]: known Property List type identifier or the
-          name of the Property List file if not known and schema.
+      tuple[str, dict[str, str]]: known property list type identifier or the
+          name of the property list file if not known and schema.
     """
     entry_lister = file_entry_lister.FileEntryLister(mediator=self._mediator)
 
@@ -341,14 +341,14 @@ class PropertyListSchemaExtractor(object):
         # Skip Cocoa nib files for now https://developer.apple.com/library/
         # archive/documentation/Cocoa/Conceptual/LoadingResources/CocoaNibs/
         # CocoaNibs.html
-        # if path_segments[-1].endswith('.nib'):
-        #   continue
+        if path_segments[-1].endswith('.nib'):
+          continue
 
         display_path = self.GetDisplayPath(path_segments)
         # logging.info(f'Extracting schema from plist file: {display_path:s}')
 
         # Note that plistlib assumes the file-like object current offset is at
-        # the start of the Property List.
+        # the start of the property list.
         file_object.seek(0, os.SEEK_SET)
 
         try:

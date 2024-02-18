@@ -3,11 +3,31 @@
 """Script to decodes a NSKeyedArchiver encoded plist."""
 
 import argparse
+import base64
 import json
 import plistlib
 import sys
 
 from plistrc import decoders
+
+
+class NSKeyedArchiverJSONEncoder(json.JSONEncoder):
+  """JSON encoder for decoded NSKeyedArchiver encoded plists."""
+
+  def default(self, o):
+    """Encodes an object as JSON.
+
+    Args:
+      o (object): object to encode.
+
+    Returns:
+      object: JSON encoded object.
+    """
+    if isinstance(o, bytes):
+      encoded_bytes = base64.urlsafe_b64encode(o)
+      return encoded_bytes.decode('latin1')
+
+    return super(NSKeyedArchiverJSONEncoder, self).default(o)
 
 
 def Main():
@@ -43,7 +63,8 @@ def Main():
     print(f'[WARNING] {exception!s}')
     return False
 
-  print(json.dumps(decoded_plist))
+  json_string = json.dumps(decoded_plist, cls=NSKeyedArchiverJSONEncoder)
+  print(json_string)
 
   return True
 
