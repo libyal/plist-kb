@@ -93,7 +93,7 @@ def Main():
       artifact_definitions, mediator=mediator)
 
   try:
-    for plist_identifier, plist_schema in extractor.ExtractSchemas(
+    for property_list_identifier, plist_schema in extractor.ExtractSchemas(
         options.source, options=volume_scanner_options):
       if not plist_schema:
         continue
@@ -105,7 +105,8 @@ def Main():
         file_exists = False
         output_file = None
         for number in range(1, 99):
-          filename = f'{plist_identifier:s}.{number:d}.{options.format:s}'
+          filename = (
+              f'{property_list_identifier:s}.{number:d}.{options.format:s}')
           output_file = os.path.join(options.output, filename)
           if not os.path.exists(output_file):
             break

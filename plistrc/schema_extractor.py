@@ -7,14 +7,18 @@ import os
 import plistlib
 import xml
 
+from artifacts import definitions as artifacts_definitions
 from artifacts import reader as artifacts_reader
 from artifacts import registry as artifacts_registry
+
+from dfdatetime import cocoa_time as dfdatetime_cocoa_time
 
 from dfimagetools import definitions as dfimagetools_definitions
 from dfimagetools import file_entry_lister
 
 from plistrc import decoders
 from plistrc import resources
+from plistrc import yaml_definitions_file
 
 
 class PropertyListSchemaExtractor(object):
@@ -25,6 +29,10 @@ class PropertyListSchemaExtractor(object):
   _MAXIMUM_FILE_SIZE = 64 * 1024 * 1024
 
   _MINIMUM_FILE_SIZE = 8
+
+  _PROPERTY_LIST_DEFINITIONS_FILE = (
+      os.path.join(os.path.dirname(__file__), 'data',
+      'known_property_lists.yaml'))
 
   _UTF8_BYTE_ORDER_MARK = b'\xef\xbb\xbf'
   _UTF16BE_BYTE_ORDER_MARK = b'\xfe\xff'
@@ -43,6 +51,7 @@ class PropertyListSchemaExtractor(object):
     """
     super(PropertyListSchemaExtractor, self).__init__()
     self._artifacts_registry = artifacts_registry.ArtifactDefinitionsRegistry()
+    self._known_property_list_definitions = {}
     self._mediator = mediator
     self._nskeyedarchiver_decoder = decoders.NSKeyedArchiverDecoder()
 
@@ -52,6 +61,19 @@ class PropertyListSchemaExtractor(object):
         self._artifacts_registry.ReadFromDirectory(reader, artifact_definitions)
       elif os.path.isfile(artifact_definitions):
         self._artifacts_registry.ReadFromFile(reader, artifact_definitions)
+
+    definitions_file = yaml_definitions_file.YAMLPropertyListDefinitionsFile()
+    for property_list_definition in definitions_file.ReadFromFile(
+        self._PROPERTY_LIST_DEFINITIONS_FILE):
+      artifact_definition = self._artifacts_registry.GetDefinitionByName(
+          property_list_definition.artifact_definition)
+      if not artifact_definition:
+        logging.warning((f'Unknown artifact definition: '
+                         f'{property_list_definition.artifact_definition:s}'))
+      else:
+        self._known_property_list_definitions[
+            property_list_definition.property_list_identifier] = (
+                artifact_definition)
 
   def _CheckByteOrderMark(self, data):
     """Determines if a property list starts with a byte-order-mark.
@@ -183,6 +205,64 @@ class PropertyListSchemaExtractor(object):
         yield from self._GetDictPropertyDefinitions(
             value_property_definition)
 
+  def _GetPropertyListIdentifier(self, path_segments):
+    """Determines the property list identifier.
+
+    Args:
+      path_segments (list[str]): path segments.
+
+    Returns:
+      str: property list identifier or None if the type could not be determined.
+    """
+    # TODO: make comparison more efficient.
+    for property_list_identifier, artifact_definition in (
+        self._known_property_list_definitions.items()):
+      for source in artifact_definition.sources:
+        if source.type_indicator in (
+            artifacts_definitions.TYPE_INDICATOR_DIRECTORY,
+            artifacts_definitions.TYPE_INDICATOR_FILE,
+            artifacts_definitions.TYPE_INDICATOR_PATH):
+          for source_path in set(source.paths):
+            source_path_segments = source_path.split(source.separator)
+
+            if not source_path_segments[0]:
+              source_path_segments = source_path_segments[1:]
+
+            # TODO: add support for parameters.
+            last_index = len(source_path_segments)
+            for index in range(1, last_index + 1):
+              source_path_segment = source_path_segments[-index]
+              if not source_path_segment or len(source_path_segment) < 2:
+                continue
+
+              if (source_path_segment[0] == '%' and
+                  source_path_segment[-1] == '%'):
+                source_path_segments = source_path_segments[-index + 1:]
+                break
+
+            if len(source_path_segments) > len(path_segments):
+              continue
+
+            is_match = True
+            last_index = min(len(source_path_segments), len(path_segments))
+            for index in range(1, last_index + 1):
+              source_path_segment = source_path_segments[-index]
+              # TODO: improve handling of *
+              if '*' in source_path_segment:
+                continue
+
+              path_segment = path_segments[-index].lower()
+              source_path_segment = source_path_segment.lower()
+
+              is_match = path_segment == source_path_segment
+              if not is_match:
+                break
+
+            if is_match:
+              return property_list_identifier
+
+    return None
+
   def _GetPropertyListKeyPath(self, key_path_segments):
     """Retrieves a property list key path.
 
@@ -272,7 +352,7 @@ class PropertyListSchemaExtractor(object):
       return 'string'
     if isinstance(item, plistlib.UID):
       return 'UID'
-    if isinstance(item, datetime.datetime):
+    if isinstance(item, (datetime.datetime, dfdatetime_cocoa_time.CocoaTime)):
       return 'date'
 
     value_type = type(item)
@@ -338,13 +418,15 @@ class PropertyListSchemaExtractor(object):
         if not self._CheckSignature(file_object):
           continue
 
+        display_path = self.GetDisplayPath(path_segments)
+
         # Skip Cocoa nib files for now https://developer.apple.com/library/
         # archive/documentation/Cocoa/Conceptual/LoadingResources/CocoaNibs/
         # CocoaNibs.html
         if path_segments[-1].endswith('.nib'):
+          # logging.info(f'Skipping nib plist file: {display_path:s}')
           continue
 
-        display_path = self.GetDisplayPath(path_segments)
         # logging.info(f'Extracting schema from plist file: {display_path:s}')
 
         # Note that plistlib assumes the file-like object current offset is at
@@ -372,10 +454,16 @@ class PropertyListSchemaExtractor(object):
               f'Unable to determine schema from plist file: {display_path:s}')
           continue
 
-        # TODO: implement determine plist identifier.
-        plist_identifier = path_segments[-1]
+        property_list_identifier = self._GetPropertyListIdentifier(
+            path_segments)
+        if not property_list_identifier:
+          logging.warning((
+              f'Unable to determine known property list identifier of file: '
+              f'{display_path:s}'))
 
-        yield plist_identifier, plist_schema
+          property_list_identifier = path_segments[-1]
+
+        yield property_list_identifier, plist_schema
 
   def FormatSchema(self, schema, output_format):
     """Formats a schema into the output format.

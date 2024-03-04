@@ -1,4 +1,82 @@
 # plist-kb property list definitions
+# TODO: MacOSSystemPreferencesPlistFile
+# TODO: split MacOSUserLoginItemsPlistFile
+# TODO: MacOSUserPasswordHashesPlistFile
 ---
 artifact_definition: MacOSAirportPreferencesPlistFile
 property_list_identifier: com.apple.airport.preferences.plist
+---
+artifact_definition: MacOSApplicationResourcesStringsPlistFile
+property_list_identifier: ApplicationResources.strings
+---
+artifact_definition: MacOSBluetoothPlistFile
+property_list_identifier: com.apple.Bluetooth.plist
+---
+artifact_definition: MacOSCodeSignatureCodeResourcesPlistFile
+property_list_identifier: CodeSignature.CodeResources
+---
+artifact_definition: MacOSContentsInfoPlistFile
+property_list_identifier: Contents.Info.plist
+---
+artifact_definition: MacOSContentsVersionPlistFile
+property_list_identifier: Contents.version.plist
+---
+artifact_definition: MacOSDockConfigurationPlistFile
+property_list_identifier: com.apple.Dock.plist
+---
+artifact_definition: MacOSGlobalPreferencesPlistFile
+property_list_identifier: GlobalPreferences.plist
+---
+artifact_definition: MacOSInstallationHistoryPlistFile
+property_list_identifier: InstallHistory.plist
+---
+artifact_definition: MacOSiTunesInterfaceBuilderDocumentPlistFile
+property_list_identifier: itunes.com.apple.ibtool.document.itxib
+---
+artifact_definition: MacOSKeyboardLayoutPlistFile
+property_list_identifier: com.apple.HIToolbox.plist
+---
+artifact_definition: MacOSLaunchAgentsPlistFile
+property_list_identifier: LaunchAgents.plist
+---
+artifact_definition: MacOSLaunchDaemonsPlistFile
+property_list_identifier: LaunchDaemons.plist
+---
+artifact_definition: MacOSLoginWindowPlistFile
+property_list_identifier: com.apple.loginwindow.plist
+---
+artifact_definition: MacOSRecentItemsPlistFile
+property_list_identifier: com.apple.recentitems.plist
+---
+artifact_definition: MacOSResourcesInfoStringsPlistFile
+property_list_identifier: Resources.InfoPlist.strings
+---
+artifact_definition: MacOSResourcesLocalizableStringsPlistFile
+property_list_identifier: Resources.Localizable.strings
+---
+artifact_definition: MacOSSidebarListsPlistFile
+property_list_identifier: com.apple.sidebarlists.plist
+---
+artifact_definition: MacOSSoftwareUpdatePreferencesPlistFile
+property_list_identifier: com.apple.SoftwareUpdate.plist
+---
+artifact_definition: MacOSSpotlightStoreVolumeConfigurationPlistFile
+property_list_identifier: spotlight.store.VolumeConfig.plist
+---
+artifact_definition: MacOSSpotlightVolumeConfigurationPlistFile
+property_list_identifier: spotlight.VolumeConfiguration.plist
+---
+artifact_definition: MacOSStartupItemsPlistFile
+property_list_identifier: StartupItems.plist
+---
+artifact_definition: MacOSSystemConfigurationPreferencesPlistFile
+property_list_identifier: SystemConfiguration.preferences.plist
+---
+artifact_definition: MacOSSystemVersionPlistFile
+property_list_identifier: SystemVersion.plist
+---
+artifact_definition: MacOSTimeMachinePlistFile
+property_list_identifier: com.apple.TimeMachine.plist
+---
+artifact_definition: MacOSUserGlobalPreferencesPlistFile
+property_list_identifier: User.GlobalPreferences.plist
