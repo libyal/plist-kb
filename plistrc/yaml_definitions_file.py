@@ -89,6 +89,4 @@ class YAMLPropertyListDefinitionsFile(object):
       PropertyListDefinition: property list definition.
     """
     with open(path, 'r', encoding='utf-8') as file_object:
-      for yaml_property_list_definition in self._ReadFromFileObject(
-          file_object):
-        yield yaml_property_list_definition
+      yield from self._ReadFromFileObject(file_object)

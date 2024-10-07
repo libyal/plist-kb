@@ -18,4 +18,4 @@ Package: plist-kb-tools
 Architecture: all
 Depends: python3-plistrc (>= ${binary:Version}), ${misc:Depends}
 Description: Tools for Property List file knowledge base
- Plist-kb is a project to build a Property List file knowledge base.
+ Plist-kb is a project to build a .
