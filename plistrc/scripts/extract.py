@@ -17,10 +17,10 @@ from plistrc import schema_extractor
 
 
 def Main():
-  """The main program function.
+  """Entry point of console script to extract Property List schemas.
 
   Returns:
-    bool: True if successful or False if not.
+    int: exit code that is provided to sys.exit().
   """
   argument_parser = argparse.ArgumentParser(description=(
       'Extracts the schema of Property List files.'))
@@ -56,7 +56,7 @@ def Main():
     print('')
     argument_parser.print_help()
     print('')
-    return False
+    return 1
 
   artifact_definitions = options.artifact_definitions
   if not artifact_definitions:
@@ -72,7 +72,7 @@ def Main():
     print('')
     argument_parser.print_help()
     print('')
-    return False
+    return 1
 
   if options.output:
     if not os.path.exists(options.output):
@@ -81,7 +81,7 @@ def Main():
     if not os.path.isdir(options.output):
       print(f'{options.output:s} must be a directory')
       print('')
-      return False
+      return 1
 
   logging.basicConfig(
       level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -124,18 +124,15 @@ def Main():
   except dfvfs_errors.ScannerError as exception:
     print(f'[ERROR] {exception!s}', file=sys.stderr)
     print('')
-    return False
+    return 1
 
   except KeyboardInterrupt:
     print('Aborted by user.', file=sys.stderr)
     print('')
-    return False
+    return 1
 
-  return True
+  return 0
 
 
 if __name__ == '__main__':
-  if not Main():
-    sys.exit(1)
-  else:
-    sys.exit(0)
+  sys.exit(Main())

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plistrc"
-version = "20251126"
+version = "20251128"
 description = "Property List file resources (plistrc)"
 maintainers = [
     { name = "Joachim Metz", email = "joachim.metz@gmail.com" },
@@ -56,6 +56,10 @@ dependencies = [
     "pytsk3 >= 20210419",
     "xattr >= 0.7.2 ; platform_system != \"Windows\"",
 ]
+
+[project.scripts]
+decode = "plistrc.scripts.decode:Main"
+extract = "plistrc.scripts.extract:Main"
 
 [project.urls]
 Documentation = "https://plistrc.readthedocs.io/en/latest"

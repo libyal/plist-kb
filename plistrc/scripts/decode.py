@@ -36,10 +36,10 @@ class NSKeyedArchiverJSONEncoder(json.JSONEncoder):
 
 
 def Main():
-  """The main program function.
+  """Entry point of console script to decode NSKeyedArchiver encoded plists.
 
   Returns:
-    bool: True if successful or False if not.
+    int: exit code that is provided to sys.exit().
   """
   argument_parser = argparse.ArgumentParser(description=(
       'Decodes NSKeyedArchiver encoded plist files.'))
@@ -55,7 +55,7 @@ def Main():
     print('')
     argument_parser.print_help()
     print('')
-    return False
+    return 1
 
   decoder = decoders.NSKeyedArchiverDecoder()
 
@@ -66,16 +66,13 @@ def Main():
     decoded_plist = decoder.Decode(encoded_plist)
   except RuntimeError as exception:
     print(f'[WARNING] {exception!s}')
-    return False
+    return 1
 
   json_string = json.dumps(decoded_plist, cls=NSKeyedArchiverJSONEncoder)
   print(json_string)
 
-  return True
+  return 0
 
 
 if __name__ == '__main__':
-  if not Main():
-    sys.exit(1)
-  else:
-    sys.exit(0)
+  sys.exit(Main())
