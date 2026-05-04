@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Property list decoders."""
 
 import plistlib
@@ -7,7 +6,7 @@ import uuid
 from dfdatetime import cocoa_time as dfdatetime_cocoa_time
 
 
-class NSKeyedArchiverDecoder(object):
+class NSKeyedArchiverDecoder:
   """Decoder for NSKeyedArchiver encoded plists.
 
   Also see:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Property list file schema extractor."""
 
 import datetime
@@ -21,7 +20,7 @@ from plistrc import resources
 from plistrc import yaml_definitions_file
 
 
-class PropertyListSchemaExtractor(object):
+class PropertyListSchemaExtractor:
   """Property list file schema extractor."""
 
   _COMPOSITE_VALUE_TYPES = frozenset(['array', 'dict'])
@@ -49,7 +48,7 @@ class PropertyListSchemaExtractor(object):
       mediator (Optional[dfvfs.VolumeScannerMediator]): a volume scanner
           mediator.
     """
-    super(PropertyListSchemaExtractor, self).__init__()
+    super().__init__()
     self._artifacts_registry = artifacts_registry.ArtifactDefinitionsRegistry()
     self._known_property_list_definitions = {}
     self._mediator = mediator

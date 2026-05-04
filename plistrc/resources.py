@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """Property list resources."""
 
 
-class PropertyDefinition(object):
+class PropertyDefinition:
   """Property definition.
 
   Attributes:
@@ -14,14 +13,14 @@ class PropertyDefinition(object):
 
   def __init__(self):
     """Initializes a property definition."""
-    super(PropertyDefinition, self).__init__()
+    super().__init__()
     self.key_path = None
     self.name = None
     self.schema = []
     self.value_type = None
 
 
-class PropertyListDefinition(object):
+class PropertyListDefinition:
   """Property list definition.
 
   Attributes:
@@ -32,6 +31,6 @@ class PropertyListDefinition(object):
 
   def __init__(self):
     """Initializes a property list definition."""
-    super(PropertyListDefinition, self).__init__()
+    super().__init__()
     self.artifact_definition = None
     self.property_list_identifier = None

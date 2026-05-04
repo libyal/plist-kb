@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """YAML-based property list definitions file."""
 
 import yaml
@@ -6,7 +5,7 @@ import yaml
 from plistrc import resources
 
 
-class YAMLPropertyListDefinitionsFile(object):
+class YAMLPropertyListDefinitionsFile:
   """YAML-based property list definitions file.
 
   A YAML-based property list definitions file contains one or more property list

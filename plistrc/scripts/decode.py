@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Script to decodes a NSKeyedArchiver encoded plist."""
 
 import argparse
@@ -32,7 +31,7 @@ class NSKeyedArchiverJSONEncoder(json.JSONEncoder):
     if isinstance(o, dfdatetime_cocoa_time.CocoaTime):
       return o.timestamp
 
-    return super(NSKeyedArchiverJSONEncoder, self).default(o)
+    return super().default(o)
 
 
 def Main():
