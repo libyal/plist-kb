@@ -44,7 +44,7 @@ class YAMLPropertyListDefinitionsFile:
     different_keys = set(yaml_property_list_definition) - self._SUPPORTED_KEYS
     if different_keys:
       different_keys = ', '.join(different_keys)
-      raise RuntimeError('Undefined keys: {0:s}'.format(different_keys))
+      raise RuntimeError(f'Undefined keys: {different_keys:s}')
 
     artifact_definition = yaml_property_list_definition.get(
         'artifact_definition', None)
