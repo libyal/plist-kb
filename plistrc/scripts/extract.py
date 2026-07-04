@@ -24,7 +24,6 @@ def Main():
     argument_parser = argparse.ArgumentParser(
         description=("Extracts the schema of Property List files.")
     )
-
     # TODO: add data group.
     argument_parser.add_argument(
         "--artifact_definitions",
@@ -38,7 +37,6 @@ def Main():
             ".yaml files."
         ),
     )
-
     # TODO: add output group.
     argument_parser.add_argument(
         "--format",
@@ -50,7 +48,6 @@ def Main():
         metavar="FORMAT",
         help="Output format.",
     )
-
     argument_parser.add_argument(
         "--output",
         dest="output",
@@ -59,7 +56,6 @@ def Main():
         default=None,
         help="Directory to write the output to.",
     )
-
     # TODO: add source group.
     command_line.AddStorageMediaImageCLIArguments(argument_parser)
 
@@ -71,7 +67,6 @@ def Main():
         default=None,
         help="path of a storage media image or Property List file.",
     )
-
     options = argument_parser.parse_args()
 
     if not options.source:
@@ -110,11 +105,9 @@ def Main():
     mediator, volume_scanner_options = command_line.ParseStorageMediaImageCLIArguments(
         options
     )
-
     extractor = schema_extractor.PropertyListSchemaExtractor(
         artifact_definitions, mediator=mediator
     )
-
     try:
         for property_list_identifier, plist_schema in extractor.ExtractSchemas(
             options.source, options=volume_scanner_options
